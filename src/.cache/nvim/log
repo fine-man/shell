@@ -1,0 +1,13 @@
+ERROR 2022-09-10T20:39:42.413 5308  terminfo_start:368: uv_tty_set_mode failed: i/o error
+WARN  2022-09-10T20:39:42.421 5308  deadly_signal:177: got signal 1 (SIGHUP)
+ERROR 2022-09-10T20:40:38.080 5324  terminfo_start:368: uv_tty_set_mode failed: i/o error
+WARN  2022-09-10T20:40:38.090 5324  deadly_signal:177: got signal 1 (SIGHUP)
+WARN  2022-09-12T12:26:03.816 6949  deadly_signal:177: got signal 1 (SIGHUP)
+ERROR 2022-09-14T11:11:58.167 5036  terminfo_start:368: uv_tty_set_mode failed: i/o error
+ERROR 2022-09-14T11:11:58.167 4998  terminfo_start:368: uv_tty_set_mode failed: i/o error
+ERROR 2022-09-14T11:11:58.168 5008  terminfo_start:368: uv_tty_set_mode failed: i/o error
+ERROR 2022-09-14T11:11:58.168 5020  terminfo_start:368: uv_tty_set_mode failed: i/o error
+WARN  2022-09-14T11:11:58.243 5008  deadly_signal:177: got signal 1 (SIGHUP)
+WARN  2022-09-14T11:11:58.243 5020  deadly_signal:177: got signal 1 (SIGHUP)
+WARN  2022-09-14T11:11:58.244 4998  deadly_signal:177: got signal 1 (SIGHUP)
+WARN  2022-09-14T11:11:58.258 5036  deadly_signal:177: got signal 1 (SIGHUP)
