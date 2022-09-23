@@ -78,7 +78,92 @@ void print_process(process *proc) {
     printf("\n");
 }
 
+process *find_process_by_pid(process *first_process, pid_t pid) {
+    /* find a process with the given pid */
+    if (first_process == NULL) return NULL;
+
+    process *cur_process = first_process;
+    while (cur_process != NULL) {
+        if (cur_process->pid = pid) {
+            return cur_process;
+        }
+
+        cur_process = cur_process->next;
+    }
+
+    /* process with the required pid not found */
+    return NULL;
+}
+
+job *init_job(char *command) {
+    job *jb = (job *) malloc(sizeof(job));
+    jb->next = NULL;
+    
+    /* copying the command */
+    size_t len = strlen(command);
+    jb->command = (char *) malloc((len + 1) * sizeof(char)); 
+    strcpy(jb->command, command);
+
+    jb->first_process = NULL;
+    jb->jid = -1;
+    jb->pgid = -1;
+    jb->status = -1;
+    jb->in_file = STDIN_FILENO;
+    jb->out_file = STDOUT_FILENO;
+    jb->error_file = STDERR_FILENO;
+
+    return jb;
+}
+
+void print_job(job *jb) {
+    process *cur_process = jb->first_process;
+
+    while (cur_process != NULL) {
+        print_process(cur_process);
+        printf("\n");
+        cur_process = cur_process->next;
+    }
+}
+
+int is_job_stopped(job *jb) {
+    process *cur_process = jb->first_process;
+
+    while (cur_process != NULL) {
+        if (cur_process->status != STOPPED) {
+            return 0;
+        }
+
+        cur_process = cur_process->next;
+    }
+
+    return 1;
+}
+
+int is_job_completed(job *jb) {
+    process *cur_process = jb->first_process;
+
+    while (cur_process != NULL) {
+        if (cur_process->status != COMPLETED) {
+            return 0;
+        }
+
+        cur_process = cur_process->next;
+    }
+    
+    return 1;
+}
+
 int main(int argc, char **argv) {
+    /*
     process *proc1 = init_process(argc, argv);
-    print_process(proc1);
+    process *proc2 = init_process(argc, argv);
+    add_process(proc1, proc2);
+    
+    print_process(proc2);
+    */
+    char cmdline[MAXLINE];
+
+    if (fgets(cmdline, MAXLINE, stdin) != NULL) {
+        parseline(cmdline);
+    }
 }

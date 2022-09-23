@@ -86,6 +86,8 @@ void print_buffer() {
 }
 
 int take_input() {
+    /* reads the input in raw mode and returns the command length */
+    /* stops reading when a newline character comes */
     cmdline[0] = '\0';
     cmd_len = 0;
     int is_eof = 0;

@@ -4,24 +4,6 @@
 extern int fg_process_time_taken;
 extern struct job_t jobs[MAXJOBS];
 
-int getarguments(char *buf, char **argv) {
-    /* stores all the arguments from "buf" to "argv" */
-    /* return value is the number of arguments "argc" */
-
-    int argc = 0;  
-    const char *delimeter = " \n\t\r";
-    char *token;
-
-    token = strtok(buf, delimeter);
-    while (token != NULL) {
-        argv[argc++] = token;
-        token = strtok(NULL, delimeter);
-    }
-
-    argv[argc] = token;
-    return argc;
-}
-
 void eval(char *cmdline) {
     /* evaluate the cmdline */
 
@@ -176,36 +158,4 @@ void execute_process_bg(int argc, char **argv) {
         /* restore the previous mask */
         sigprocmask(SIG_SETMASK, &prev_one, NULL);
     }
-}
-
-void parseline(char *cmdline) {
-    /* parses the cmdline and sends each individual command
-     * to be evaluated */
-
-    char cmd[MAXLINE]; /* buffer for individual commands on cmdline */
-    size_t cmd_len = 0; /* length of an individual command */
-    size_t n = strlen(cmdline); /* length of the whole command line */
-    cmdline[--n] = '\0'; /* replacing the \n of commandline with \0 */
-
-    int i = 0;
-    for (i = 0; i < n; i++) {
-        if (cmdline[i] == ';') {
-            cmd[cmd_len] = '\0';
-            if (cmd_len > 0) eval(cmd);
-            cmd_len = 0;
-        }
-        else if (cmdline[i] == '&') {
-            cmd[cmd_len++] = '&';
-            cmd[cmd_len] = '\0';
-            /* evaluate the command if it is not empty */
-            if (cmd_len > 1) eval(cmd);
-            cmd_len = 0;
-        }
-        else {
-            cmd[cmd_len++] = cmdline[i];
-        }
-    }
-
-    cmd[cmd_len] = '\0';
-    if (cmd_len > 0) eval(cmd);
 }
