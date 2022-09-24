@@ -21,4 +21,5 @@ void restore_sigdefault() {
     signal(SIGTSTP, SIG_DFL);
     signal(SIGINT, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
+    signal(SIGTTOU, SIG_DFL);
 }

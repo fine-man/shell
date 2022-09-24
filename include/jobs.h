@@ -1,37 +1,63 @@
 #ifndef _JOBS_H
 #define _JOBS_H
 
-#include "libs.h"
+#define RUNNING 1  /* process is running */
+#define STOPPED 2  /* process is stopped */
+#define SIGNALED 3 /* process was terminated by a signal */
+#define EXITED 4   /* process exited normally */
 
-/* Job constants */
-#define MAXJOBS 100 /* max jobs at any point in time */
+typedef struct process {
+    struct process *next; /* next process in the pipeline */
+    int argc;             /* number of arguments in the argument list */
+    char **argv;          /* argument list for exec */
+    pid_t pid;            /* pid of the process */
+    pid_t pgid;           /* group if of the process */
+    int status;            /* status of the process (completed, stopped, running) */
+    int return_code;       /* return value of the process */
+} process;
 
-/* Job States */
-#define UNDEF 0 /* undefined */
-#define FG 1 /* running in foreground */
-#define BG 2 /* running in background */
-#define ST 3 /* stopped */
-#define EXITED 4 /* process has finish/exited */
+typedef struct job {
+    struct termios tmodes;   /* saved terminal modes */
+    struct job *next;        /* next active job */
+    char *command;           /* command line, used for messages */
 
-struct job_t {          /* The job struct */
-    char cmd[MAXLINE]; /* command line */
-    pid_t pid;          /* job pid */
-    int jid;            /* job ID [1, 2, ...] */
-    int state;          /* current job state [UNDEF, FG, BG, ET...] */
-    int wstatus;      /* exit status or signal value */
-    int signo;
-};
+    process *first_process;  /* first process in the pipeline */
+    int proc_list_size;      /* size of the process list */
 
-/* functions for the job_t struct */
-void clearjob(struct job_t *job);
-void initjobs(struct job_t *jobs);
-int maxjid(struct job_t *jobs); 
-int addjob(struct job_t *jobs, pid_t pid, int state, char *cmd);
-int deletejob(struct job_t *jobs, pid_t pid); 
-pid_t fgpid(struct job_t *jobs);
-struct job_t *getjobpid(struct job_t *jobs, pid_t pid);
-struct job_t *getjobjid(struct job_t *jobs, int jid); 
-int pid2jid(struct job_t *jobs, pid_t pid); 
-void print_finishedjob_status(struct job_t *job);
-void print_stoppedjob_status(struct job_t *job);
+    /* status of the last waited process in pipeline */
+    int status;
+    /* return code of the last waited process in pipeline */
+    int return_code;
+
+    int jid;                 /* job id */
+    pid_t pgid;              /* process group id */
+    int notified;            /* whether the user has been notified */
+
+    /* standard i/o channels */
+    int infile;
+    int outfile;
+    int errfile;
+} job;
+
+/* process procedures */
+process *init_process(int argc, char **argv);
+void add_process(process *first_process, process *new_process);
+void delete_process_list(process *first_process);
+void delete_process_list(process *first_process);
+process *get_process_by_pid(process *first_process, pid_t pid);
+void print_process(process *proc);
+
+/* job procedures */
+job *init_job(char *command);
+void free_job(job *jb);
+void deletejob_by_jid(job *first_job, int jid);
+void addjob(job *first_job, job *new_job);
+int is_job_stopped(job *jb);
+int is_job_completed(job *jb);
+job *get_job_by_pgid(job *first_job, pid_t pid);
+int get_maxjid(job *first_job);
+void print_job(job *jb);
+job *get_job_by_pid(job *first_job, pid_t pid);
+void print_job_status(job *jb);
+
 #endif

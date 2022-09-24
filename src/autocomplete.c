@@ -172,14 +172,15 @@ int get_basename(char dest[], char path[], size_t len) {
 
 int autocomplete() {
     /* autocomplete command-line path */
-    if (cmd_len <= 0) return -1;
-    /* return if last character was a space */
-    if (isspace(cmdline[cmd_len - 1])) return -1;
 
     /* extract the directory name and the partial file-name */
     char last_word[PATH_MAX], copy_last_word[PATH_MAX];
     int ret_val = extract_last_word(last_word, cmdline, PATH_MAX);
-    if (ret_val <= 0) return -1;
+    if (ret_val < 0) return -1;
+
+    if (ret_val == 0) {
+        sprintf(last_word, "./");
+    }
     
     /* copy the last_word buffer as get_dirname
      * might change last_word */

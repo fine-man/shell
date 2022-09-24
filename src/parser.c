@@ -78,10 +78,11 @@ void parse_command(char *cmd, int foreground) {
     }
 
     /* create the job for the pipelined processes */
-    job *jb = init_job(command);
+    job *jb = init_job(cmd);
     jb->proc_list_size = process_count;
     jb->first_process = first_process;
-
+    
+    //print_job(jb);
     launch_job(jb, foreground);
 }
 
@@ -102,14 +103,13 @@ void parseline(char *cmdline) {
     for (i = 0; i < len; i++) {
         if (cmdline[i] == ';') {
             cmd[cmd_len] = '\0';
-            if (cmd_len > 0) parse_command(cmd, 0);
+            if (cmd_len > 0) parse_command(cmd, 1);
             cmd_len = 0;
         }
         else if (cmdline[i] == '&') {
-            cmd[cmd_len++] = '&';
             cmd[cmd_len] = '\0';
             /* parse the individual job command */
-            if (cmd_len > 1) parse_command(cmd, 1);
+            if (cmd_len > 1) parse_command(cmd, 0);
             cmd_len = 0;
         }
         else {
@@ -118,5 +118,5 @@ void parseline(char *cmdline) {
     }
 
     cmd[cmd_len] = '\0';
-    if (cmd_len > 0) parse_command(cmd, 0);
+    if (cmd_len > 0) parse_command(cmd, 1);
 }

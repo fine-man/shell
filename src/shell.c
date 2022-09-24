@@ -6,9 +6,12 @@ char username[USER_NAME_MAX];
 extern char **environ;
 char cmdline[MAXLINE]; /* buffer for whole command line */
 int cmd_len = 0;
+int shell_terminal;
+int shell_pgid;
+struct termios shell_tmodes;
 
-/* job list */
-struct job_t jobs[MAXJOBS];
+/* first job in job list */
+job *first_job;
 
 /* time taken by the previous foreground process */
 int fg_process_time_taken = 0;
@@ -33,6 +36,7 @@ int main() {
             process_sigchld();
             sigchld_flag = 0;
         }
+
         displayprompt(); /* display the shell promt */
 
         /* read the command line input */
@@ -40,8 +44,9 @@ int main() {
         if (ret_val == -1) {
             exit(EXIT_SUCCESS);
         }
-        else if (ret_val <= 0) continue;
+        else if (ret_val <= 1) continue;
         
+        //printf("command line = %s\n", cmdline);
         update_history(cmdline); /* update the command line history of shell */
         parseline(cmdline); /* parse the command line and evaluate
                                each command */
@@ -49,6 +54,25 @@ int main() {
 }
 
 void setupshell() {
+
+    /* set the terminal fd to be same as stdin */
+    shell_terminal = STDIN_FILENO;
+
+    shell_pgid = getpid();
+
+    /* Put shell in it's own process group */
+    if (setpgid(shell_pgid, shell_pgid) != 0) {
+       fprintf(stderr, "vsh: couldn't put the shell in it's own process group: %s\n",
+               strerror(errno));
+       exit(EXIT_FAILURE);
+    }
+    
+    /* get control of the terminal */
+    tcsetpgrp(shell_terminal, shell_pgid);
+
+    /* save default terminal attributes for shell */
+    tcgetattr(shell_terminal, &shell_tmodes);
+
     /* get the hostname */
     int ret_val = gethostname(hostname, HOST_NAME_MAX);
     if (ret_val == -1) {
@@ -66,8 +90,6 @@ void setupshell() {
     install_sighandlers(); /* install all the signal handlers */
     
     retrieve_history(); /* retrieve the history file of vsh */
-
-    initjobs(jobs); /* initialize the job list */
 }
 
 void set_environ() {
@@ -86,7 +108,11 @@ void install_sighandlers() {
     /* ignore ctrl-z */
     signal(SIGTSTP, SIG_IGN);
 
+    /* ignore ctrl-c */
     signal(SIGINT, SIG_IGN);
+
+    /* ignore SIGTTOU */
+    signal(SIGTTOU, SIG_IGN);
 }
 
 void displayprompt() {

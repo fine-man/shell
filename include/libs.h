@@ -34,12 +34,13 @@
 #include "vsh-ls.h"
 #include "history.h"
 #include "pinfo.h"
-#include "jobs.h"
 #include "signal_handlers.h"
 #include "process_signals.h"
 #include "rawio.h"
 #include "autocomplete.h"
-#include "jobs2.h"
+#include "jobs.h"
+#include "job-control.h"
+#include "parser.h"
 #include "shell.h"
 
 #endif
