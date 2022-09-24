@@ -1,4 +1,0 @@
-break main
-break print_process
-break delete_process
-

@@ -19,7 +19,7 @@ int getarguments(char *buf, char **argv) {
     return argc;
 }
 
-void parse_command(char *cmd) {
+void parse_command(char *cmd, int foreground) {
     /* parse a single job command */
 
     char command[MAXLINE]; /* copy of cmd which can be changed */
@@ -82,12 +82,11 @@ void parse_command(char *cmd) {
     jb->proc_list_size = process_count;
     jb->first_process = first_process;
 
-    /* eval and execute the job */
-    eval(jb);
+    launch_job(jb, foreground);
 }
 
 void parseline(char *cmdline) {
-    /* parses the cmdline and sends each individual command
+    /* parses the cmdline and sends each individual job command
      * to be parsed again */
 
     char cmd[MAXLINE]; /* buffer for individual commands on cmdline */
@@ -103,14 +102,14 @@ void parseline(char *cmdline) {
     for (i = 0; i < len; i++) {
         if (cmdline[i] == ';') {
             cmd[cmd_len] = '\0';
-            if (cmd_len > 0) parse_command(cmd);
+            if (cmd_len > 0) parse_command(cmd, 0);
             cmd_len = 0;
         }
         else if (cmdline[i] == '&') {
             cmd[cmd_len++] = '&';
             cmd[cmd_len] = '\0';
             /* parse the individual job command */
-            if (cmd_len > 1) parse_command(cmd);
+            if (cmd_len > 1) parse_command(cmd, 1);
             cmd_len = 0;
         }
         else {
@@ -119,5 +118,5 @@ void parseline(char *cmdline) {
     }
 
     cmd[cmd_len] = '\0';
-    if (cmd_len > 0) parse_command(cmd);
+    if (cmd_len > 0) parse_command(cmd, 0);
 }

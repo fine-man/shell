@@ -153,6 +153,78 @@ int is_job_completed(job *jb) {
     return 1;
 }
 
+void launch_process(process *proc, pid_t pgid, int infile,
+        int outfile, int errfile, int foreground);
+    /* launch the process "proc" */
+
+    /* change the group id of the process
+     * set the terminal group if process is foreground
+     * change the stdin, stdout, stderr
+     * restore default signal handlers
+     * exec the process */
+    
+    proc->pid = getpid();
+
+    /* change the process group of the process */
+    if (gid == -1) {
+        /* set process group = pid */
+        pgid = pid;
+    }
+    /* set process group = pgid */
+    if (setpgid(pid, pgid) == -1) {
+        fprintf(stderr, "vsh: child process group change failure: %s\n",
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    /* set the terminal group if process is foreground */
+    if (foreground) {
+        tcsetpgrp(STDIN_FILENO, pgid);
+    }
+
+    /* input/output and error file redirection */
+    if (dup2(infile, STDIN_FILENO) != 0) {
+        fprintf(stderr, "vsh: input redirection error: %s\n",
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (dup2(outfile, STDOUT_FILENO) != 0) {
+        fprintf(stderr, "vsh: output redirection error: %s\n",
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (dup2(errfile, STDERR_FILENO) != 0) {
+        fprintf(stderr, "vsh: error redirection error: %s\n",
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    /* restore all the signal handlers to default */
+    restore_sigdefault();
+
+    /* launch the process */
+    execvpe(proc->argv[0], proc->argv, environ);
+
+    /* exec failed */
+    fprintf(stderr, "vsh: execvpe error: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
+}
+
+void launch_job(job *jb, int foreground) {
+    int infile, outfile;
+
+    process *cur_process = jb->first_process;
+
+    while (cur_process != NULL) {
+        /* check if there is a process ahead in the pipeline */
+        int is_pipe = (cur_process->next != NULL) ? 1 : 0;
+
+        if (is_pipe) {
+
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     /*
     process *proc1 = init_process(argc, argv);
