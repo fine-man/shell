@@ -66,21 +66,6 @@ void delete_process_list(process *first_process) {
     }
 }
 
-void print_process(process *proc) {
-    if (proc == NULL) return;
-
-    printf("argc = %d\n", proc->argc);
-    for (int i = 0; i < proc->argc; i++) {
-        if (proc->argv[i] == NULL) {
-            printf("error\n");
-            exit(0);
-        }
-        printf("argv[%d] = %s\n", i, proc->argv[i]);
-    }
-
-    printf("\n");
-}
-
 process *get_process_by_pid(process *first_process, pid_t pid) {
     /* find a process with the given pid */
     if (first_process == NULL) return NULL;
@@ -96,6 +81,21 @@ process *get_process_by_pid(process *first_process, pid_t pid) {
 
     /* process with the required pid not found */
     return NULL;
+}
+
+void print_process(process *proc) {
+    if (proc == NULL) return;
+
+    printf("argc = %d\n", proc->argc);
+    for (int i = 0; i < proc->argc; i++) {
+        if (proc->argv[i] == NULL) {
+            printf("error\n");
+            exit(0);
+        }
+        printf("argv[%d] = %s\n", i, proc->argv[i]);
+    }
+
+    printf("\n");
 }
 
 job *init_job(char *command) {
@@ -177,17 +177,25 @@ void deletejob_by_jid(job *start_job, int jid) {
     }
 }
 
-void print_job(job *jb) {
-    process *cur_process = jb->first_process;
+int get_maxjid(job *first_job) {
+    if (first_job == NULL) return 0;
+    
+    int maxjid = 0;
+    job *cur_job = first_job;
+    while (cur_job != NULL) {
+        if (cur_job->jid > maxjid) {
+            maxjid = cur_job->jid;
+        }
 
-    while (cur_process != NULL) {
-        print_process(cur_process);
-        printf("\n");
-        cur_process = cur_process->next;
+        cur_job = cur_job->next;
     }
+
+    return maxjid;
 }
 
 int is_job_stopped(job *jb) {
+    if (jb == NULL) return 1;
+
     process *cur_process = jb->first_process;
 
     while (cur_process != NULL) {
@@ -201,7 +209,25 @@ int is_job_stopped(job *jb) {
     return 1;
 }
 
+int is_job_running(job *jb) {
+    if (jb == NULL) return 0;
+    /* returns true if even one process in pipeline is running */
+
+    process *cur_process = jb->first_process;
+    while (cur_process != NULL) {
+        if (cur_process->status == RUNNING) {
+            return 1;
+        }
+
+        cur_process = cur_process->next;
+    }
+
+    return 0;
+}
+
 int is_job_completed(job *jb) {
+    if (jb == NULL) return 1;
+
     process *cur_process = jb->first_process;
 
     while (cur_process != NULL) {
@@ -254,20 +280,76 @@ job *get_job_by_pgid(job *first_job, pid_t pgid) {
     return NULL;
 }
 
-int get_maxjid(job *first_job) {
-    if (first_job == NULL) return 0;
-    
-    int maxjid = 0;
+job *get_job_by_jid(job *first_job, int jid) {
+    if (first_job == NULL) return NULL;
+
     job *cur_job = first_job;
+
     while (cur_job != NULL) {
-        if (cur_job->jid > maxjid) {
-            maxjid = cur_job->jid;
+        if (cur_job->jid == jid) {
+            return cur_job;
         }
 
         cur_job = cur_job->next;
     }
 
-    return maxjid;
+    return NULL;
+}
+
+void delete_process_by_pid(job *jb, int pid) {
+    /* deletes the process with pid = "pid" in job jb */
+
+    if (jb == NULL) return;
+
+    process *cur_process = jb->first_process;
+    process *prev_process = NULL;
+
+    if (cur_process->pid == pid) {
+        /* first process is to be deleted */
+        jb->first_process = cur_process->next;
+        delete_process(cur_process);
+        jb->proc_list_size--;
+        return;
+    }
+
+    /* iterate through all the processes in the process list */
+    while (cur_process != NULL) {
+        
+        if (cur_process->pid == pid) {
+            if (prev_process != NULL) {
+                prev_process->next = cur_process->next;
+                delete_process(cur_process);
+                jb->proc_list_size--;
+            }
+            
+            return;
+        }
+        prev_process = cur_process;
+        cur_process = cur_process->next;
+    }
+}
+
+void mark_job_as_running(job *jb) {
+    /* Mark a stopped job jb as running again */
+    if (jb == NULL) return;
+
+    process *cur_process = jb->first_process;
+    while (cur_process != NULL) {
+        cur_process->status = RUNNING;
+        cur_process = cur_process->next;
+    }
+
+    jb->notified = 0;
+}
+
+void print_job(job *jb) {
+    process *cur_process = jb->first_process;
+
+    while (cur_process != NULL) {
+        print_process(cur_process);
+        printf("\n");
+        cur_process = cur_process->next;
+    }
 }
 
 void print_job_status(job *jb) {

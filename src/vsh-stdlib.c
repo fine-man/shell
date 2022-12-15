@@ -104,7 +104,7 @@ char *getrelativepath(char *buf, size_t len, char *absolute_path) {
     return buf;
 }
 
-char *getrealpath(char *resolved_path, size_t len, char *relative_path) {
+char *getrealpath(char *resolved_path, size_t len, const char *relative_path) {
     /* returns a char pointer to the resolved path of a relative path */
     /* returns null if len is not big enough to store the resolved path */
 

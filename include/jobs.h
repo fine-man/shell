@@ -42,7 +42,7 @@ typedef struct job {
 /* process procedures */
 process *init_process(int argc, char **argv);
 void add_process(process *first_process, process *new_process);
-void delete_process_list(process *first_process);
+void delete_process(process *proc);
 void delete_process_list(process *first_process);
 process *get_process_by_pid(process *first_process, pid_t pid);
 void print_process(process *proc);
@@ -52,12 +52,20 @@ job *init_job(char *command);
 void free_job(job *jb);
 void deletejob_by_jid(job *first_job, int jid);
 void addjob(job *first_job, job *new_job);
-int is_job_stopped(job *jb);
-int is_job_completed(job *jb);
-job *get_job_by_pgid(job *first_job, pid_t pid);
 int get_maxjid(job *first_job);
-void print_job(job *jb);
+
+int is_job_stopped(job *jb);
+int is_job_running(job *jb);
+int is_job_completed(job *jb);
+
+job *get_job_by_pgid(job *first_job, pid_t pid);
 job *get_job_by_pid(job *first_job, pid_t pid);
+job *get_job_by_jid(job *first_job, int jid);
+
+void delete_process_by_pid(job *jb, int pid);
+
+void mark_job_as_running(job *jb);
+void print_job(job *jb);
 void print_job_status(job *jb);
 
 #endif

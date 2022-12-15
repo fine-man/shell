@@ -41,6 +41,11 @@
 #include "jobs.h"
 #include "job-control.h"
 #include "parser.h"
+#include "fg.h"
+#include "bg.h"
+#include "sig.h"
+#include "list-jobs.h"
+#include "vsh-exit.h"
 #include "shell.h"
 
 #endif

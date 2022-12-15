@@ -7,4 +7,5 @@ void put_job_in_foreground(job *jb, int cont);
 void put_job_in_background(job *jb, int cont);
 void update_status();
 void do_job_notification();
+void kill_all_jobs();
 #endif

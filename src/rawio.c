@@ -130,6 +130,7 @@ int take_input() {
             /* eof character */
             if (cmd_len == 0) {
                 is_eof = 1;
+                printf("\n");
             }
             else {
                 printf("\n");

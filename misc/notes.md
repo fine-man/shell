@@ -40,5 +40,3 @@
 - stat/lstat
 - scandir/opendir/readdir
 - man 7 inode
-
-### String parsing

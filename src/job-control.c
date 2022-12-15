@@ -55,12 +55,15 @@ void launch_process(process *proc, pid_t pgid, int infile,
     /* restore all the signal handlers to default */
     restore_sigdefault();
 
-    /* launch the process */
-    execvpe(proc->argv[0], proc->argv, environ);
-
-    /* exec failed */
-    fprintf(stderr, "vsh: execvpe error: %s\n", strerror(errno));
-    exit(EXIT_FAILURE);
+    if (user_builtin_command(proc->argc, proc->argv) == 0) {
+        /* launch the process if it is not user builtin */
+        execvpe(proc->argv[0], proc->argv, environ);
+        /* exec failed */
+        fprintf(stderr, "vsh: execvpe error: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    
+    exit(EXIT_SUCCESS);
 }
 
 void launch_job(job *jb, int foreground) {
@@ -145,6 +148,7 @@ void launch_job(job *jb, int foreground) {
     if (first_job == NULL) first_job = jb;
     else addjob(first_job, jb);
 
+    //print_all_jobs(first_job);
     if (foreground) {
         put_job_in_foreground(jb, 0);
     }
@@ -170,7 +174,10 @@ void put_job_in_foreground(job *jb, int cont) {
         if (kill(-jb->pgid, SIGCONT) != 0) {
             fprintf(stderr, "vsh: couldn't continue job with jid = %d: %s\n",
                     jb->jid, strerror(errno));
+            return;
         }
+
+        mark_job_as_running(jb);
     }
 
     /* put job in foreground */
@@ -187,7 +194,7 @@ void put_job_in_foreground(job *jb, int cont) {
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 
     /* print the job info along with exit code */
-    print_job_status(jb);
+    //print_job_status(jb);
 
     /* delete job from the job list */
     if (is_job_completed(jb)) {
@@ -205,13 +212,26 @@ void put_job_in_background(job *jb, int cont) {
             fprintf(stderr, "vsh: couldn't continue job with jid = %d: %s\n",
                     jb->jid, strerror(errno));
         }
+
+        mark_job_as_running(jb);
     }
+    
+    /* notify the user that job is running is background */
+    printf("[%d]+ %s &\n", jb->jid, jb->command);
 }
 
 int mark_process_status(pid_t pid, int wstatus) {
     /* mark the status of the process with process id "pid */
 
-    if (pid < 0) return -1;
+    /* returns the status of the process with pid = "pid"
+     * RUNNING
+     * STOPPED
+     * SIGNALED
+     * EXITED */
+
+    /* returns -1 on any errors */
+
+    if (pid <= 0) return -1;
 
     job *jb = get_job_by_pid(first_job, pid);
     if (jb == NULL) {
@@ -233,6 +253,8 @@ int mark_process_status(pid_t pid, int wstatus) {
 
         jb->status = EXITED;
         jb->return_code = proc->return_code;
+
+        return EXITED;
     }
     else if (WIFSIGNALED(wstatus)) {
         /* process was terminated by a signal */
@@ -241,6 +263,8 @@ int mark_process_status(pid_t pid, int wstatus) {
 
         jb->status = SIGNALED;
         jb->return_code = proc->return_code;
+
+        return SIGNALED;
     }
     else if (WIFSTOPPED(wstatus)) {
         /* process was stopped by a signal */
@@ -249,6 +273,18 @@ int mark_process_status(pid_t pid, int wstatus) {
 
         jb->status = STOPPED;
         jb->return_code = proc->return_code;
+
+        return STOPPED;
+    }
+    else if (WIFCONTINUED(wstatus)) {
+        /* process continued by SIGCONT */
+        proc->status = RUNNING;
+        jb->status = RUNNING;
+
+        return RUNNING;
+    }
+    else {
+        return -1;
     }
 }
 
@@ -263,11 +299,33 @@ void wait_for_job(job *jb) {
     int wstatus;
     pid_t pid;
 
+    /* wait while even a single process in job pipeline is running */
     while (!is_job_stopped(jb) && !is_job_completed(jb)) {
-        if ((pid = waitpid(-pgid, &wstatus, WUNTRACED)) != -1) {
-            mark_process_status(pid, wstatus);
+        if ((pid = waitpid(-pgid, &wstatus, WUNTRACED)) > 0) {
+
+            /* mark the process status */
+            int ret_status = mark_process_status(pid, wstatus);
+
+            if (ret_status == EXITED || ret_status == SIGNALED) {
+                job *jb = get_job_by_pid(first_job, pid);
+                if (jb == NULL) return;
+                delete_process_by_pid(jb, pid);
+            }
+
             //printf("pid = %d, stopped = %d, completed = %d\n",
                     //pid, is_job_stopped(jb), is_job_completed(jb));
+        }
+        else if (pid == -1) {
+            /* pid = -1, error */
+            if (errno == ECHILD) {
+                /* no children are waiting, ignore */
+                printf("no children are waiting\n");
+                break;
+            }
+            else {
+                fprintf(stderr, "vsh: waitpid: %s\n", strerror(errno));
+                break;
+            }
         }
     }
 }
@@ -276,8 +334,19 @@ void update_status() {
     int wstatus;
     pid_t pid;
 
-    while ((pid = waitpid(WAIT_ANY, &wstatus, WNOHANG | WUNTRACED)) != -1) {
-        mark_process_status(pid, wstatus);
+    while ((pid = waitpid(WAIT_ANY, &wstatus, WNOHANG 
+                    | WUNTRACED | WCONTINUED)) > 0) {
+        /* mark the process status */
+        int ret_status = mark_process_status(pid, wstatus);
+
+        /* delete process if it is completed */
+        if (ret_status == EXITED || ret_status == SIGNALED) {
+            job *jb = get_job_by_pid(first_job, pid);
+            if (jb == NULL) return;
+            delete_process_by_pid(jb, pid);
+        }
+        //printf("pid = %d, stopped = %d, completed = %d\n",
+                //pid, is_job_stopped(jb), is_job_completed(jb));
     }
 }
 
@@ -299,3 +368,20 @@ void do_job_notification() {
         cur_job = cur_job->next;
     }
 }
+
+void kill_all_jobs() {
+    /* kill all the jobs which are children of shell */
+    job *cur_job = first_job;
+
+    while (cur_job != NULL) {
+        first_job = cur_job->next;
+
+        if (kill(-cur_job->pgid, SIGKILL) != 0) {
+            fprintf(stderr, "vsh: sig: couldn't send Signal: SIGKILL to job with jid = %d\n",
+                    cur_job->jid);
+        }
+
+        cur_job = cur_job->next;
+    }
+}
+/* 3539th line , it's a prime number */

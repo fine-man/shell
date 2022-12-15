@@ -114,7 +114,55 @@ void print_realpath(int argc, char **argv) {
     }
 }
 
-int builtincommand(int argc, char **argv) {
+int is_shell_builtin(char argv[]) {
+    /* tells if a command is shell builtin */
+    if (strcmp(argv, "cd") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv, "fg") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv, "bg") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv, "sig") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv, "exit") == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int execute_shell_builtin(int argc, char **argv) {
+    /* execute the shell builtins */
+    if (strcmp(argv[0], "cd") == 0) {
+        cd(argc, argv);
+        return 1;
+    }
+    else if (strcmp(argv[0], "fg") == 0) {
+        fg(argc, argv);
+        return 1;
+    }
+    else if (strcmp(argv[0], "bg") == 0) {
+        /* add the function for bg here */
+        bg(argc, argv);
+        return 1;
+    }
+    else if (strcmp(argv[0], "sig") == 0) {
+        sig(argc, argv);
+        return 1;
+    }
+    else if (strcmp(argv[0], "exit") == 0) {
+        vsh_exit(argc, argv);
+    }
+
+    /* command was not a shell builtin */
+    return 0;
+}
+
+int user_builtin_command(int argc, char **argv) {
     /* execute the command argv[0] if it a built in command */
     /* return value is 1 when argv[0] is a built in command and
      * 0 otherwise */
@@ -125,10 +173,6 @@ int builtincommand(int argc, char **argv) {
     }
     else if (strcmp(argv[0], "echo") == 0) {
         echo(argc, argv);
-        return 1;
-    }
-    else if (strcmp(argv[0], "cd") == 0) {
-        cd(argc, argv);
         return 1;
     }
     else if (strcmp(argv[0], "realpath") == 0) {
@@ -147,9 +191,9 @@ int builtincommand(int argc, char **argv) {
         pinfo(argc, argv);
         return 1;
     }
-    else if (strcmp(argv[0], "exit") == 0) {
-        printf("exit\n");
-        exit(EXIT_SUCCESS);
+    else if (strcmp(argv[0], "jobs") == 0) {
+        list_jobs(argc, argv);
+        return 1;
     }
 
     return 0;
